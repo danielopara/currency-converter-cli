@@ -11,26 +11,21 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// ExchangeRates represents the JSON structure returned by the exchange rate API
 type ExchangeRates struct {
-    Rates map[string]float64 `json:"rates"` // Map of currency codes to their exchange rates
-    Base  string             `json:"base"`  // Base currency (usually USD for this API)
+    Rates map[string]float64 `json:"rates"` 
+    Base  string             `json:"base"`  
 }
 
-// supportBase defines the currencies we support (though not currently used in the original code)
 var supportBase = []string{"USD", "EUR", "GBP", "JPY"}
 
-// validateFloat checks if the input string can be converted to a valid float64
 func validateFloat(input string) error {
-    // Try to parse the string as a float64
     if _, err := strconv.ParseFloat(input, 64); err != nil {
         return fmt.Errorf("Please enter a valid number")
     }
-    return nil // Return nil if parsing succeeds
+    return nil 
 }
 
 func fetchAmount(apiURL string) (*ExchangeRates, error) {
-    // Make HTTP GET request to the API
     resp, err := http.Get(apiURL)
     if err != nil {
         return nil, err
@@ -49,30 +44,25 @@ func fetchAmount(apiURL string) (*ExchangeRates, error) {
 }
 
 func main() {
-    // Load environment variables from .env file
     err := godotenv.Load()
     if err != nil {
         fmt.Println("env file does not exist")
         return
     }
     
-    // Get API key from environment variable
     apiKey := os.Getenv("KEY")
     if apiKey == "" {
         fmt.Println("no key")
         return
     }
     
-    // Construct API URL with the API key
     apiURL := "https://openexchangerates.org/api/latest.json?app_id=" + apiKey
     
     // Variables to store form input values
     var currencyFrom, currencyTo, amountStr string
     var shouldContinue bool = true
     
-    // Main application loop
     for shouldContinue {
-        // Create the form with improved options and validation
         form := huh.NewForm(
             huh.NewGroup(
                 huh.NewSelect[string]().
@@ -91,7 +81,6 @@ func main() {
                     ).
                     Value(&currencyFrom),
                 
-                // Select dropdown for target currency
                 huh.NewSelect[string]().
                     Title("Convert to:").
                     Description("Select the currency you want to convert to").
@@ -109,7 +98,6 @@ func main() {
                     ).
                     Value(&currencyTo),
                 
-                // Input field for amount with validation
                 huh.NewInput().
                     Title("Amount:").
                     Description("Enter the amount you want to convert").
@@ -119,31 +107,27 @@ func main() {
             ),
         )
         
-        // Run the form and handle errors
         if err := form.Run(); err != nil {
             fmt.Println("Error running form:", err)
             return
         }
         
-        // Convert string amount to float64 (we know it's valid due to validation)
+		//convert amount
         amount, _ := strconv.ParseFloat(amountStr, 64)
         
         // Check if user is trying to convert same currency
         if currencyFrom == currencyTo {
             fmt.Printf("\n%.2f %s = %.2f %s (same currency)\n", amount, currencyFrom, amount, currencyTo)
         } else {
-            // Fetch exchange rate data from API
             data, err := fetchAmount(apiURL)
             if err != nil {
                 fmt.Println("Error fetching exchange rates:", err)
                 return
             }
             
-            // Get exchange rates for both currencies
             rateFrom := data.Rates[currencyFrom]
             rateTo := data.Rates[currencyTo]
             
-            // Check if currencies exist in the API response
             if rateFrom == 0 || rateTo == 0 {
                 fmt.Println("Error: One or both currencies not found in API response")
                 continue
